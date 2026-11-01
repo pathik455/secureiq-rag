@@ -47,11 +47,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       id: 'credentials',
       name: 'Security Analyst Demo',
       credentials: {
-        email: { label: 'Email', type: 'email', placeholder: 'analyst@edocode.in' },
+        email: { label: 'Email', type: 'email', placeholder: 'analyst@secureiq.io' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        const email = (credentials?.email as string) || 'analyst@edocode.in'
+        const email = (credentials?.email as string) || 'analyst@secureiq.io'
 
         try {
           let user = await prisma.user.findUnique({
@@ -62,13 +62,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             user = await prisma.user.create({
               data: {
                 email,
-                name: 'Elena Rostova',
-                username: 'elena_rostova',
+                name: 'Security Analyst',
+                username: 'analyst',
                 role: 'Security Analyst',
                 department: 'Cybersecurity',
-                githubUsername: 'edocode455',
-                image:
-                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces',
+                githubUsername: null,
+                image: null,
               },
             })
           }
@@ -84,13 +83,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return {
             id: 'demo-analyst-1',
             email,
-            name: 'Elena Rostova',
-            username: 'elena_rostova',
+            name: 'Security Analyst',
+            username: 'analyst',
             role: 'Security Analyst',
             department: 'Cybersecurity',
-            githubUsername: 'edocode455',
-            image:
-              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces',
+            githubUsername: null,
+            image: null,
           }
         }
       },

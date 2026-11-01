@@ -58,16 +58,16 @@ export default function ProfilePage() {
   const profile = data?.data
 
   const displayProfile = profile || {
-    name: session?.user?.name || 'Elena Rostova',
-    email: session?.user?.email || 'analyst@edocode.in',
+    name: session?.user?.name || 'Security Analyst',
+    email: session?.user?.email || '',
     image: session?.user?.image,
-    username: 'elena_rostova',
-    bio: 'Senior Security Analyst & Vector RAG Architect at edocode455. Specializing in vulnerability research and AI-powered remediation.',
+    username: session?.user?.email ? session.user.email.split('@')[0] : 'analyst',
+    bio: 'Security Analyst specializing in vulnerability intelligence and automated remediation.',
     role: 'Security Analyst',
     department: 'Cybersecurity',
-    phone: '+1 (555) 019-2834',
-    githubUsername: 'edocode455',
-    linkedinUrl: 'https://linkedin.com/in/edocode455',
+    phone: '',
+    githubUsername: '',
+    linkedinUrl: '',
     createdAt: new Date().toISOString(),
   }
 
@@ -226,7 +226,7 @@ export default function ProfilePage() {
               <Input
                 value={form.githubUsername || ''}
                 onChange={(e) => setForm((f: any) => ({ ...f, githubUsername: e.target.value }))}
-                placeholder="edocode455"
+                placeholder="github_username"
                 className="bg-surface-2 border-border text-text-primary text-sm h-9 font-mono"
               />
             </div>
@@ -361,8 +361,8 @@ export default function ProfilePage() {
               </div>
 
               <div className="flex items-center justify-between py-1.5">
-                <span className="text-text-muted">Workspace Brand</span>
-                <span className="text-accent font-mono font-bold">edocode455</span>
+                <span className="text-text-muted">Workspace</span>
+                <span className="text-accent font-mono font-bold">SecureIQ</span>
               </div>
             </div>
           </div>

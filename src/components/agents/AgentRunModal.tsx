@@ -224,7 +224,7 @@ export function AgentRunModal() {
         {/* Footer controls */}
         <DialogFooter className="p-4 border-t border-border bg-black/60 flex items-center justify-between">
           <div className="text-[11px] text-text-muted font-mono">
-            edocode455 • LangChain.js & pgvector
+            SecureIQ • LangChain & pgvector
           </div>
           <div className="flex items-center gap-2">
             {isRunning ? (

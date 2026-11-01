@@ -2,13 +2,12 @@
 
 import { signOut } from 'next-auth/react'
 import Image from 'next/image'
+import Link from 'next/link'
 import {
   Bell,
-  Search,
   LogOut,
   Sparkles,
-  ExternalLink,
-  ShieldCheck,
+  User,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -35,12 +34,7 @@ export function Header({ user }: HeaderProps) {
   return (
     <header className="h-16 border-b border-border bg-surface/90 backdrop-blur-md px-6 flex items-center justify-between z-20">
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 text-xs text-text-secondary">
-          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-2 border border-accent/30 text-white shadow-sm shadow-accent/5">
-            <ShieldCheck className="w-3.5 h-3.5 text-accent" />
-            Security Posture: <span className="text-accent font-semibold">Protected</span>
-          </span>
-        </div>
+        {/* Clean minimal breadcrumb space */}
       </div>
 
       <div className="flex items-center gap-3">
@@ -54,15 +48,6 @@ export function Header({ user }: HeaderProps) {
           Trigger Agent
         </Button>
 
-        {/* Notifications */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-text-secondary hover:text-white hover:bg-surface-2"
-        >
-          <Bell className="w-4 h-4" />
-        </Button>
-
         {/* Profile Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -70,38 +55,37 @@ export function Header({ user }: HeaderProps) {
               variant="ghost"
               className="flex items-center gap-2 h-8 px-2 rounded-full border border-border hover:bg-surface-2 hover:border-accent/30"
             >
-              <div className="w-6 h-6 rounded-full overflow-hidden border border-accent/50 bg-black flex items-center justify-center">
-                <Image
-                  src="/edocode-logo.png"
-                  alt="edocode"
-                  width={24}
-                  height={24}
-                  className="object-cover"
-                  onError={(e) => {
-                    const target = e.currentTarget
-                    target.style.display = 'none'
-                  }}
-                />
+              <div className="w-6 h-6 rounded-full overflow-hidden border border-accent/50 bg-surface-2 flex items-center justify-center">
+                {user?.image ? (
+                  <Image
+                    src={user.image}
+                    alt={user.name || 'User'}
+                    width={24}
+                    height={24}
+                    className="object-cover w-full h-full"
+                  />
+                ) : (
+                  <User className="w-3.5 h-3.5 text-accent" />
+                )}
               </div>
               <span className="text-xs text-white font-medium max-w-[130px] truncate">
-                {user?.name || 'edocode Analyst'}
+                {user?.name || 'Security Analyst'}
               </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56 bg-surface border-border">
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-xs font-medium text-white">{user?.name || 'edocode Analyst'}</p>
-                <p className="text-[11px] text-text-muted truncate">{user?.email || 'analyst@edocode.in'}</p>
+                <p className="text-xs font-medium text-white">{user?.name || 'Security Analyst'}</p>
+                <p className="text-[11px] text-text-muted truncate">{user?.email || 'Logged in'}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-border" />
-            <DropdownMenuItem
-              className="text-xs cursor-pointer text-text-secondary hover:text-white"
-              onClick={() => window.open('https://github.com/edocode455', '_blank')}
-            >
-              <ExternalLink className="w-3.5 h-3.5 mr-2 text-accent" />
-              GitHub (@edocode455)
+            <DropdownMenuItem asChild className="text-xs cursor-pointer text-text-secondary hover:text-white">
+              <Link href="/profile" className="flex items-center w-full">
+                <User className="w-3.5 h-3.5 mr-2 text-accent" />
+                View Profile
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-border" />
             <DropdownMenuItem

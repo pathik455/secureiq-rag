@@ -140,7 +140,7 @@ export function SecurityOverview({ vulnerabilities }: SecurityOverviewProps) {
           </ResponsiveContainer>
         </div>
         <div className="flex justify-between items-center text-[11px] text-text-muted mt-2 pt-2 border-t border-border/40 font-mono">
-          <span>edocode synchronized</span>
+          <span>Telemetry synchronized</span>
           <span>RAG target: &gt;75%</span>
         </div>
       </div>

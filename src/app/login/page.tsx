@@ -1,13 +1,13 @@
 'use client'
 
 import React, { useState, Suspense } from 'react'
-import Image from 'next/image'
 import { signIn } from 'next-auth/react'
 import { useSearchParams } from 'next/navigation'
 import {
   CheckCircle,
   ArrowRight,
   ShieldCheck,
+  ShieldAlert,
   AlertTriangle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -27,7 +27,7 @@ function LoginForm() {
   const handleDemoSignIn = () => {
     setIsLoading(true)
     signIn('credentials', {
-      email: 'analyst@edocode.in',
+      email: 'analyst@secureiq.io',
       password: 'demo-password',
       callbackUrl: '/vulnerabilities',
     })
@@ -57,25 +57,15 @@ function LoginForm() {
 
   return (
     <div className="w-full max-w-md bg-surface border border-border p-8 relative z-10 space-y-6 rounded-xl shadow-2xl backdrop-blur-md">
-      {/* Brand with edocode logo */}
+      {/* Brand logo */}
       <div className="flex flex-col items-center text-center space-y-2">
-        <div className="relative w-16 h-16 rounded-2xl overflow-hidden border-2 border-accent bg-black flex items-center justify-center shadow-glow-green mb-1">
-          <Image
-            src="/edocode-logo.png"
-            alt="edocode455 logo"
-            width={64}
-            height={64}
-            priority
-            className="object-cover"
-          />
+        <div className="w-14 h-14 rounded-2xl border-2 border-accent/40 bg-accent/10 flex items-center justify-center shadow-glow-green-sm mb-1 text-accent">
+          <ShieldAlert className="w-7 h-7" />
         </div>
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold tracking-tight text-white">
             SecureIQ
           </h1>
-          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-accent/20 text-accent border border-accent/40 font-mono">
-            edocode
-          </span>
         </div>
         <p className="text-xs text-text-secondary max-w-xs">
           Autonomous Vulnerability & Remediation Orchestration powered by Vector RAG
@@ -97,7 +87,7 @@ function LoginForm() {
       <div className="p-3.5 rounded-lg bg-surface-2 border border-border space-y-2">
         <div className="flex items-center gap-2 text-xs text-text-secondary">
           <CheckCircle className="w-3.5 h-3.5 text-accent shrink-0" />
-          <span>edocode cybersecurity vector pattern engine</span>
+          <span>Cybersecurity vector pattern intelligence engine</span>
         </div>
         <div className="flex items-center gap-2 text-xs text-text-secondary">
           <CheckCircle className="w-3.5 h-3.5 text-accent shrink-0" />
@@ -157,7 +147,7 @@ function LoginForm() {
       </div>
 
       <div className="text-center text-[11px] text-text-muted font-mono">
-        edocode455 • Cyber Security Intelligence Hub
+        SecureIQ • Cyber Security Intelligence Hub
       </div>
     </div>
   )

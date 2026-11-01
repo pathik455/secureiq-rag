@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
   ShieldAlert,
@@ -35,30 +34,15 @@ export function Sidebar() {
   return (
     <aside className="w-64 bg-surface border-r border-border flex flex-col justify-between select-none">
       <div>
-        {/* Brand Header with edocode logo */}
+        {/* Brand Header */}
         <div className="h-16 flex items-center gap-3 px-5 border-b border-border bg-black/40">
-          <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-accent/40 bg-black flex items-center justify-center shadow-glow-green-sm">
-            <Image
-              src="/edocode-logo.png"
-              alt="edocode455 logo"
-              width={32}
-              height={32}
-              className="object-cover"
-              onError={(e) => {
-                // fallback if image fails
-                const target = e.currentTarget
-                target.style.display = 'none'
-              }}
-            />
-            <ShieldAlert className="w-4 h-4 text-accent absolute" style={{ opacity: 0 }} />
+          <div className="w-8 h-8 rounded-lg border border-accent/40 bg-accent/10 flex items-center justify-center shadow-glow-green-sm text-accent">
+            <ShieldAlert className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-bold text-sm tracking-tight text-white">
                 SecureIQ
-              </span>
-              <span className="text-[9px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-accent/20 text-accent border border-accent/30 font-mono">
-                edocode
               </span>
             </div>
             <p className="text-[10px] text-text-muted">Autonomous RAG Platform</p>
@@ -129,7 +113,7 @@ export function Sidebar() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
             </span>
-            <span className="text-text-secondary text-[11px] font-medium">edocode Engine</span>
+            <span className="text-text-secondary text-[11px] font-medium">RAG Engine</span>
           </div>
           <span className="text-[10px] font-mono text-accent font-semibold">Active</span>
         </div>

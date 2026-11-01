@@ -10,7 +10,7 @@ export async function GET() {
   }
 
   const userId = session.user.id
-  const userEmail = session.user.email || 'analyst@edocode.in'
+  const userEmail = session.user.email || ''
 
   try {
     let user = null
@@ -32,51 +32,53 @@ export async function GET() {
   }
 
   // Fallback to Supabase direct query
-  try {
-    const { data: sbUser } = await supabaseAdmin
-      .from('User')
-      .select('*')
-      .eq('email', userEmail)
-      .maybeSingle()
+  if (userEmail) {
+    try {
+      const { data: sbUser } = await supabaseAdmin
+        .from('User')
+        .select('*')
+        .eq('email', userEmail)
+        .maybeSingle()
 
-    if (sbUser) {
-      return NextResponse.json({
-        data: {
-          id: sbUser.id,
-          name: sbUser.name || session.user.name,
-          email: sbUser.email,
-          image: sbUser.image || session.user.image,
-          username: sbUser.username || userEmail.split('@')[0],
-          bio: sbUser.bio || 'Security Analyst & Threat Intelligence Operator',
-          role: sbUser.role || 'Security Analyst',
-          department: sbUser.department || 'Cybersecurity',
-          phone: sbUser.phone || null,
-          githubUsername: sbUser.github_username || 'edocode455',
-          linkedinUrl: sbUser.linkedin_url || null,
-          createdAt: sbUser.createdAt || new Date().toISOString(),
-          updatedAt: sbUser.updatedAt || new Date().toISOString(),
-        },
-      })
+      if (sbUser) {
+        return NextResponse.json({
+          data: {
+            id: sbUser.id,
+            name: sbUser.name || session.user.name,
+            email: sbUser.email,
+            image: sbUser.image || session.user.image,
+            username: sbUser.username || userEmail.split('@')[0],
+            bio: sbUser.bio || 'Security Analyst & Threat Intelligence Operator',
+            role: sbUser.role || 'Security Analyst',
+            department: sbUser.department || 'Cybersecurity',
+            phone: sbUser.phone || null,
+            githubUsername: sbUser.github_username || null,
+            linkedinUrl: sbUser.linkedin_url || null,
+            createdAt: sbUser.createdAt || new Date().toISOString(),
+            updatedAt: sbUser.updatedAt || new Date().toISOString(),
+          },
+        })
+      }
+    } catch (sbErr) {
+      console.warn('[profile-api] Supabase read fallback skipped:', sbErr)
     }
-  } catch (sbErr) {
-    console.warn('[profile-api] Supabase read fallback skipped:', sbErr)
   }
 
-  // Fallback demo profile
+  // Fallback profile based on session
   return NextResponse.json({
     data: {
-      id: userId || 'demo-analyst-1',
-      name: session.user.name || 'Elena Rostova',
+      id: userId || 'analyst-1',
+      name: session.user.name || 'Security Analyst',
       email: userEmail,
-      image: session.user.image || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces',
-      username: 'elena_rostova',
-      bio: 'Senior Security Analyst & Vector RAG Architect at edocode455. Focus on threat intelligence and automated remediation.',
-      role: 'Senior Security Analyst',
-      department: 'Cybersecurity & Threat Ops',
-      phone: '+1 (555) 019-2834',
-      githubUsername: 'edocode455',
-      linkedinUrl: 'https://linkedin.com/in/edocode455',
-      createdAt: new Date(Date.now() - 90 * 86400000).toISOString(),
+      image: session.user.image || null,
+      username: userEmail ? userEmail.split('@')[0] : 'analyst',
+      bio: 'Security Analyst & Threat Intelligence Operator',
+      role: 'Security Analyst',
+      department: 'Cybersecurity',
+      phone: null,
+      githubUsername: null,
+      linkedinUrl: null,
+      createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
   })
@@ -116,7 +118,7 @@ export async function PUT(request: Request) {
         where: { email: userEmail },
         create: {
           email: userEmail,
-          name: name || session.user.name || 'Elena Rostova',
+          name: name || session.user.name || 'Security Analyst',
           username,
           bio,
           role,
@@ -182,16 +184,16 @@ export async function PUT(request: Request) {
 
   return NextResponse.json({
     data: {
-      id: userId || 'demo-analyst-1',
-      email: userEmail || 'analyst@edocode.in',
+      id: userId || 'analyst-1',
+      email: userEmail || '',
       image: session.user.image,
-      name: name || session.user.name || 'Elena Rostova',
-      username: username || 'elena_rostova',
-      bio: bio || 'Senior Security Analyst at edocode455',
+      name: name || session.user.name || 'Security Analyst',
+      username: username || (userEmail ? userEmail.split('@')[0] : 'analyst'),
+      bio: bio || '',
       role: role || 'Security Analyst',
       department: department || 'Cybersecurity',
       phone: phone || null,
-      githubUsername: githubUsername || 'edocode455',
+      githubUsername: githubUsername || null,
       linkedinUrl: linkedinUrl || null,
       updatedAt: new Date().toISOString(),
     },

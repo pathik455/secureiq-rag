@@ -11,7 +11,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // edocode455 Brand Colors: Pitch Black + Neon Cyber Green (#00FF29)
+        // Brand Colors: Pitch Black + Neon Cyber Green (#00FF29)
         background: '#000000',
         surface: '#0A0D0A',
         'surface-2': '#111712',
