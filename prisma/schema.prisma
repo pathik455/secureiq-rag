@@ -1,0 +1,255 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [vector, uuidOssp(map: "uuid-ossp")]
+}
+
+// ============================================================
+// AUTH (synced with Supabase auth.users via next-auth adapter)
+// ============================================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+
+  vulnerabilities Vulnerability[]
+  remediations    Remediation[]
+  schedules       Schedule[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================================
+// CORE SECURITY DATA
+// ============================================================
+
+enum Severity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  INFO
+}
+
+enum VulnerabilityStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  FALSE_POSITIVE
+  DEFERRED
+}
+
+enum RemediationStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  DEFERRED
+}
+
+enum Priority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum LinkType {
+  MANUAL
+  AI_GENERATED
+  IMPORTED
+}
+
+enum SkillType {
+  HISTORICAL_ANALYZER
+  REMEDIATION_LINKER
+  CUSTOM
+}
+
+enum RunStatus {
+  SUCCESS
+  FAILED
+  RUNNING
+  TIMEOUT
+  CANCELLED
+}
+
+model Vulnerability {
+  id               String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cveId            String?             @unique @map("cve_id")
+  title            String
+  description      String?             @db.Text
+  severity         Severity
+  cvssScore        Decimal?            @map("cvss_score") @db.Decimal(4, 1)
+  affectedSystem   String?             @map("affected_system")
+  affectedVersions String[]            @map("affected_versions")
+  tags             String[]
+  status           VulnerabilityStatus @default(OPEN)
+  discoveredAt     DateTime            @default(now()) @map("discovered_at")
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+
+  createdById String? @map("created_by")
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  // Relations
+  vulRemedLinks VulRemedLink[]
+  skillCaches   SkillCache[]
+
+  @@map("vulnerabilities")
+}
+
+model Remediation {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title           String
+  description     String?           @db.Text
+  status          RemediationStatus @default(PENDING)
+  priority        Priority?
+  dueDate         DateTime?         @map("due_date")
+  resolutionNotes String?           @map("resolution_notes") @db.Text
+  isAiGenerated   Boolean           @default(false) @map("is_ai_generated")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  assignedToId String? @map("assigned_to")
+  assignedTo   User?   @relation(fields: [assignedToId], references: [id])
+
+  cacheId String?     @map("cache_id") @db.Uuid
+  cache   SkillCache? @relation(fields: [cacheId], references: [id])
+
+  createdById String? @map("created_by")
+
+  // Relations
+  vulRemedLinks VulRemedLink[]
+
+  @@map("remediations")
+}
+
+model VulRemedLink {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vulnerabilityId String   @map("vulnerability_id") @db.Uuid
+  remediationId   String   @map("remediation_id") @db.Uuid
+  linkType        LinkType @default(MANUAL) @map("link_type")
+  confidenceScore Decimal? @map("confidence_score") @db.Decimal(5, 4)
+  createdByAgent  String?  @map("created_by_agent")
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  vulnerability Vulnerability @relation(fields: [vulnerabilityId], references: [id], onDelete: Cascade)
+  remediation   Remediation   @relation(fields: [remediationId], references: [id], onDelete: Cascade)
+
+  @@unique([vulnerabilityId, remediationId])
+  @@map("vul_remed_links")
+}
+
+// ============================================================
+// SKILLS & RAG
+// ============================================================
+
+model Skill {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String    @unique
+  description String?   @db.Text
+  type        SkillType
+  config      Json      @default("{}")
+  isActive    Boolean   @default(true) @map("is_active")
+  version     String    @default("1.0.0")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  skillCaches SkillCache[]
+  schedules   Schedule[]
+
+  @@map("skills")
+}
+
+model SkillCache {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  skillId        String    @map("skill_id") @db.Uuid
+  vulnerabilityId String?  @map("vulnerability_id") @db.Uuid
+  patternSummary  String   @map("pattern_summary") @db.Text
+  rawContext      String?  @map("raw_context") @db.Text
+  // embedding stored as raw bytes — use Supabase client for vector ops
+  metadata        Json     @default("{}")
+  expiresAt       DateTime? @map("expires_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  skill          Skill          @relation(fields: [skillId], references: [id])
+  vulnerability  Vulnerability? @relation(fields: [vulnerabilityId], references: [id])
+  remediations   Remediation[]
+
+  @@unique([skillId, vulnerabilityId])
+  @@map("skill_cache")
+}
+
+model Schedule {
+  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  skillId        String     @map("skill_id") @db.Uuid
+  name           String
+  cronExpression String     @map("cron_expression")
+  isActive       Boolean    @default(true) @map("is_active")
+  lastRunAt      DateTime?  @map("last_run_at")
+  lastRunStatus  RunStatus? @map("last_run_status")
+  nextRunAt      DateTime?  @map("next_run_at")
+  runHistory     Json[]     @default([]) @map("run_history")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  createdById String? @map("created_by")
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  skill Skill @relation(fields: [skillId], references: [id])
+
+  @@map("schedules")
+}
