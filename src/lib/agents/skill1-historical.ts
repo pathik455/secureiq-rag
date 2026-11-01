@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/db/prisma'
 import { createEmbedding } from '@/lib/rag/embeddings'
-import { MOCK_VULNERABILITIES } from '@/lib/db/mockData'
 import OpenAI from 'openai'
 
 function getOpenAIClient(): OpenAI | null {

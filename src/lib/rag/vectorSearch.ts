@@ -14,7 +14,8 @@ export interface SearchResult {
 export async function semanticSearch(
   query: string,
   threshold = 0.6,
-  limit = 10
+  limit = 10,
+  userId?: string
 ): Promise<SearchResult[]> {
   const embedding = await createEmbedding(query)
 
@@ -27,7 +28,24 @@ export async function semanticSearch(
     })
 
     if (!error && Array.isArray(data) && data.length > 0) {
-      return data.map((item: any) => ({
+      let filteredData = data
+      if (userId) {
+        const vulnIds = data.map((d: any) => d.vulnerability_id).filter(Boolean)
+        if (vulnIds.length > 0) {
+          const userVulns = await prisma.vulnerability.findMany({
+            where: { id: { in: vulnIds }, createdById: userId },
+            select: { id: true },
+          })
+          const allowedVulnIds = new Set(userVulns.map((v) => v.id))
+          filteredData = data.filter(
+            (item: any) => !item.vulnerability_id || allowedVulnIds.has(item.vulnerability_id)
+          )
+        } else {
+          filteredData = []
+        }
+      }
+
+      return filteredData.map((item: any) => ({
         id: item.id,
         skill_id: item.skill_id,
         vulnerability_id: item.vulnerability_id,
@@ -40,9 +58,10 @@ export async function semanticSearch(
     // Graceful fallback to prisma keyword / pattern matching
   }
 
-  // 2. Prisma fallback: Text search across cached pattern summaries
+  // 2. Prisma fallback: Text search across cached pattern summaries scoped to user
   const queryTerms = query.toLowerCase().split(/\s+/).filter(Boolean)
   const cachedItems = await prisma.skillCache.findMany({
+    where: userId ? { vulnerability: { createdById: userId } } : {},
     take: limit * 2,
     orderBy: { createdAt: 'desc' },
   })

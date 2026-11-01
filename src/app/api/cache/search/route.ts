@@ -25,7 +25,8 @@ export async function POST(req: NextRequest) {
     const results = await semanticSearch(
       parsed.data.query,
       parsed.data.threshold,
-      parsed.data.limit
+      parsed.data.limit,
+      session.user.id
     )
 
     return NextResponse.json({ data: results })

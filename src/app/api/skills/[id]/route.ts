@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/config'
 import { prisma } from '@/lib/db/prisma'
-import { MOCK_SKILLS } from '@/lib/db/mockData'
+import { supabaseAdmin } from '@/lib/db/supabase'
 import { z } from 'zod'
 
 const UpdateSkillSchema = z.object({
@@ -33,12 +33,18 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         include: { _count: { select: { skillCaches: true, schedules: true } } },
       })
       if (skill) return NextResponse.json({ data: skill })
-    } catch {
-      // Mock fallback
+    } catch (dbErr) {
+      console.warn('Prisma skill get error:', dbErr)
     }
 
-    const mock = MOCK_SKILLS.find((s) => s.id === params.id)
-    if (mock) return NextResponse.json({ data: mock })
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('skills')
+        .select('*')
+        .eq('id', params.id)
+        .single()
+      if (!error && data) return NextResponse.json({ data })
+    } catch {}
 
     return NextResponse.json({ error: 'Skill not found' }, { status: 404 })
   } catch (error: any) {
@@ -65,13 +71,27 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         data: parsed.data,
       })
       return NextResponse.json({ data: updated })
-    } catch {
-      const idx = MOCK_SKILLS.findIndex((s) => s.id === params.id)
-      if (idx !== -1) {
-        ;(MOCK_SKILLS as any)[idx] = { ...MOCK_SKILLS[idx], ...parsed.data, updatedAt: new Date().toISOString() }
-        return NextResponse.json({ data: MOCK_SKILLS[idx] })
+    } catch (dbErr) {
+      const { data, error } = await supabaseAdmin
+        .from('skills')
+        .update({
+          ...(parsed.data.name ? { name: parsed.data.name } : {}),
+          ...(parsed.data.description !== undefined ? { description: parsed.data.description } : {}),
+          ...(parsed.data.type ? { type: parsed.data.type } : {}),
+          ...(parsed.data.prompt !== undefined ? { prompt: parsed.data.prompt } : {}),
+          ...(parsed.data.version ? { version: parsed.data.version } : {}),
+          ...(parsed.data.isActive !== undefined ? { is_active: parsed.data.isActive } : {}),
+          ...(parsed.data.config ? { config: parsed.data.config } : {}),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', params.id)
+        .select()
+        .single()
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 })
       }
-      return NextResponse.json({ data: { id: params.id, ...parsed.data } })
+      return NextResponse.json({ data })
     }
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
@@ -90,8 +110,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         where: { id: params.id },
       })
     } catch {
-      const idx = MOCK_SKILLS.findIndex((s) => s.id === params.id)
-      if (idx !== -1) MOCK_SKILLS.splice(idx, 1)
+      await supabaseAdmin.from('skills').delete().eq('id', params.id)
     }
 
     return NextResponse.json({ success: true })

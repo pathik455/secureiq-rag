@@ -4,7 +4,8 @@ import { runRemediationLinker, Skill2Progress } from './skill2-remediation'
 import { AgentRunOptions, SSEMessage } from '@/types'
 
 export async function* runAgentPipeline(
-  options: AgentRunOptions = {}
+  options: AgentRunOptions = {},
+  userId?: string
 ): AsyncGenerator<SSEMessage> {
   const batchSize = options.options?.batchSize || 50
   const confidenceThreshold = options.options?.confidenceThreshold || 0.7
@@ -80,7 +81,9 @@ export async function* runAgentPipeline(
             data: { skillId: skill.id, ...p },
           })
         },
-        batchSize
+        batchSize,
+        null,
+        userId
       )
       totalCache += res.cacheCreated
 
@@ -98,7 +101,8 @@ export async function* runAgentPipeline(
           })
         },
         confidenceThreshold,
-        dryRun
+        dryRun,
+        userId
       )
       totalRemediations += res.remediationsCreated
       totalLinks += res.linksCreated

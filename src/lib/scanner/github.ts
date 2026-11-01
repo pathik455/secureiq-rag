@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/db/prisma'
 import { supabaseAdmin } from '@/lib/db/supabase'
-import { MOCK_VULNERABILITIES, MOCK_REMEDIATIONS } from '@/lib/db/mockData'
 import OpenAI from 'openai'
 
 function getOpenAIClient(): OpenAI | null {

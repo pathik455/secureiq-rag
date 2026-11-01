@@ -26,10 +26,22 @@ export async function GET(req: NextRequest) {
 
     try {
       if (schedule.skill.type === 'HISTORICAL_ANALYZER') {
-        const res = await runHistoricalAnalyzer(schedule.skillId, () => {}, 30)
+        const res = await runHistoricalAnalyzer(
+          schedule.skillId,
+          () => {},
+          30,
+          null,
+          schedule.createdById || undefined
+        )
         message = `Cached ${res.cacheCreated} vulnerability patterns`
       } else if (schedule.skill.type === 'REMEDIATION_LINKER') {
-        const res = await runRemediationLinker(schedule.skillId, () => {}, 0.7, false)
+        const res = await runRemediationLinker(
+          schedule.skillId,
+          () => {},
+          0.7,
+          false,
+          schedule.createdById || undefined
+        )
         message = `Generated ${res.remediationsCreated} remediations and ${res.linksCreated} links`
       }
     } catch (err: any) {

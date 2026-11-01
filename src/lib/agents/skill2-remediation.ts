@@ -56,7 +56,7 @@ export async function runRemediationLinker(
 
     try {
       const searchQuery = `${vuln.title} ${vuln.description || ''} ${vuln.affectedSystem || ''} ${vuln.tags.join(' ')}`
-      const matches = await semanticSearch(searchQuery, confidenceThreshold, 3)
+      const matches = await semanticSearch(searchQuery, confidenceThreshold, 3, userId)
 
       if (matches.length > 0) {
         const topMatch = matches[0]

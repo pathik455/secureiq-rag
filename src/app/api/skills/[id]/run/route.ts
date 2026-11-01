@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/config'
 import { prisma } from '@/lib/db/prisma'
+import { supabaseAdmin } from '@/lib/db/supabase'
 import { runHistoricalAnalyzer } from '@/lib/agents/skill1-historical'
 import { runRemediationLinker } from '@/lib/agents/skill2-remediation'
 import { runDocumentAnalyzer } from '@/lib/agents/skill-document'
-import { MOCK_SKILLS } from '@/lib/db/mockData'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await auth()
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -26,11 +26,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         where: { id: params.id },
       })
     } catch (dbErr) {
-      console.warn('DB skill lookup failed, searching mockData:', dbErr)
+      console.warn('DB skill lookup failed, attempting Supabase admin:', dbErr)
     }
 
     if (!skill) {
-      skill = MOCK_SKILLS.find((s) => s.id === params.id)
+      try {
+        const { data } = await supabaseAdmin.from('skills').select('*').eq('id', params.id).single()
+        if (data) skill = data
+      } catch {}
     }
 
     if (!skill) {
@@ -45,11 +48,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     } else if (skill.type === 'DOCUMENT_ANALYSIS') {
       const docText =
         body.documentContent ||
-        `edocode455 Cloud Defense Guideline:
-All microservice endpoints must enforce mutual TLS (mTLS) with short-lived SPIFFE/SPIRE certificates.
+        `Cloud Defense Guideline:
+All microservice endpoints must enforce mutual TLS (mTLS) with short-lived certificates.
 Databases must not be directly reachable from public subnets.
-Every container image deployed to production clusters must be signed via Cosign and undergo continuous Trivy vulnerability scanning.
-Any critical vulnerability identified in container base layers must trigger an automated rollback or hotpatch within 24 hours.`
+Every container image deployed to production clusters must undergo continuous vulnerability scanning.`
       result = await runDocumentAnalyzer(
         skill.id,
         docText,
@@ -69,9 +71,7 @@ Any critical vulnerability identified in container base layers must trigger an a
         data: { updatedAt: new Date() },
       })
     } catch {
-      // Mock update fallback
-      const m = MOCK_SKILLS.find((s) => s.id === skill.id)
-      if (m) m.updatedAt = new Date().toISOString()
+      await supabaseAdmin.from('skills').update({ updated_at: new Date().toISOString() }).eq('id', skill.id)
     }
 
     return NextResponse.json({
