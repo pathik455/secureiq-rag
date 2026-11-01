@@ -8,6 +8,8 @@ import {
   LogOut,
   Sparkles,
   User,
+  PanelLeft,
+  PanelLeftOpen,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -29,23 +31,50 @@ interface HeaderProps {
 }
 
 export function Header({ user }: HeaderProps) {
-  const { setIsAgentModalOpen } = useAppStore()
+  const {
+    setIsAgentModalOpen,
+    isSidebarCollapsed,
+    toggleSidebar,
+    toggleMobileSidebar,
+  } = useAppStore()
+
+  const handleToggle = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      toggleMobileSidebar()
+    } else {
+      toggleSidebar()
+    }
+  }
 
   return (
-    <header className="h-16 border-b border-border bg-surface/90 backdrop-blur-md px-6 flex items-center justify-between z-20">
-      <div className="flex items-center gap-4">
-        {/* Clean minimal breadcrumb space */}
+    <header className="h-16 border-b border-border bg-surface/90 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between z-20 shrink-0">
+      <div className="flex items-center gap-2">
+        {/* Sidebar Window Toggle Icon */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleToggle}
+          title={isSidebarCollapsed ? 'Open sidebar (Window Icon)' : 'Close sidebar (Window Icon)'}
+          className="h-8 w-8 text-text-secondary hover:text-white hover:bg-surface-2 border border-border/70 hover:border-accent/40 transition-all rounded-lg"
+        >
+          {isSidebarCollapsed ? (
+            <PanelLeftOpen className="w-4 h-4 text-accent" />
+          ) : (
+            <PanelLeft className="w-4 h-4 text-text-secondary hover:text-accent" />
+          )}
+        </Button>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         <Button
           variant="outline"
           size="sm"
           onClick={() => setIsAgentModalOpen(true)}
-          className="h-8 gap-1.5 border-accent/40 text-accent hover:bg-accent/15 text-xs font-semibold"
+          className="h-8 gap-1.5 border-accent/40 text-accent hover:bg-accent/15 text-xs font-semibold px-2.5 sm:px-3"
         >
           <Sparkles className="w-3.5 h-3.5" />
-          Trigger Agent
+          <span className="hidden sm:inline">Trigger Agent</span>
+          <span className="sm:hidden">Agent</span>
         </Button>
 
         {/* Profile Dropdown */}
@@ -53,9 +82,9 @@ export function Header({ user }: HeaderProps) {
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="flex items-center gap-2 h-8 px-2 rounded-full border border-border hover:bg-surface-2 hover:border-accent/30"
+              className="flex items-center gap-2 h-8 px-1.5 sm:px-2 rounded-full border border-border hover:bg-surface-2 hover:border-accent/30"
             >
-              <div className="w-6 h-6 rounded-full overflow-hidden border border-accent/50 bg-surface-2 flex items-center justify-center">
+              <div className="w-6 h-6 rounded-full overflow-hidden border border-accent/50 bg-surface-2 flex items-center justify-center shrink-0">
                 {user?.image ? (
                   <Image
                     src={user.image}
@@ -68,7 +97,7 @@ export function Header({ user }: HeaderProps) {
                   <User className="w-3.5 h-3.5 text-accent" />
                 )}
               </div>
-              <span className="text-xs text-white font-medium max-w-[130px] truncate">
+              <span className="text-xs text-white font-medium max-w-[100px] sm:max-w-[130px] truncate hidden xs:inline">
                 {user?.name || 'Security Analyst'}
               </span>
             </Button>

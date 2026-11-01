@@ -304,7 +304,8 @@ export default function ScannerPage() {
                 View in Vulnerabilities Tab <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
-            <Table>
+            <div className="overflow-x-auto">
+              <Table className="min-w-[650px]">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[130px]">CVE / Advisory</TableHead>
@@ -352,6 +353,7 @@ export default function ScannerPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </div>
         </div>
       )}
@@ -381,7 +383,8 @@ export default function ScannerPage() {
           </div>
         ) : (
           <div className="figma-card overflow-hidden">
-            <Table>
+            <div className="overflow-x-auto">
+              <Table className="min-w-[650px]">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[130px]">CVE / ID</TableHead>
@@ -417,6 +420,7 @@ export default function ScannerPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </div>
         )}
       </div>

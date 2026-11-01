@@ -394,7 +394,8 @@ export default function VulnerabilitiesPage() {
 
       {/* Vulnerabilities Table with Viewable Row Navigation */}
       <div className="rounded-lg border border-border overflow-hidden bg-surface">
-        <Table>
+        <div className="overflow-x-auto">
+          <Table className="min-w-[700px]">
           <TableHeader>
             <TableRow className="border-border bg-surface-2">
               <TableHead
@@ -531,6 +532,7 @@ export default function VulnerabilitiesPage() {
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {/* Pagination Footer */}

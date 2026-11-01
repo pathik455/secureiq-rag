@@ -146,7 +146,8 @@ export default function CachePage() {
             </p>
           </div>
         ) : (
-          <Table>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[650px]">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[140px]">Source Vulnerability</TableHead>
@@ -197,6 +198,7 @@ export default function CachePage() {
               })}
             </TableBody>
           </Table>
+          </div>
         )}
       </div>
     </div>

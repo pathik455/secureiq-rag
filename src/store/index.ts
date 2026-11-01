@@ -9,6 +9,12 @@ interface AppState {
   setSelectedRemediationId: (id: string | null) => void
   activeTab: string
   setActiveTab: (tab: string) => void
+  isSidebarCollapsed: boolean
+  toggleSidebar: () => void
+  setIsSidebarCollapsed: (collapsed: boolean) => void
+  isMobileSidebarOpen: boolean
+  setIsMobileSidebarOpen: (open: boolean) => void
+  toggleMobileSidebar: () => void
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -20,4 +26,10 @@ export const useAppStore = create<AppState>((set) => ({
   setSelectedRemediationId: (id) => set({ selectedRemediationId: id }),
   activeTab: 'vulnerabilities',
   setActiveTab: (tab) => set({ activeTab: tab }),
+  isSidebarCollapsed: false,
+  toggleSidebar: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
+  setIsSidebarCollapsed: (collapsed) => set({ isSidebarCollapsed: collapsed }),
+  isMobileSidebarOpen: false,
+  setIsMobileSidebarOpen: (open) => set({ isMobileSidebarOpen: open }),
+  toggleMobileSidebar: () => set((state) => ({ isMobileSidebarOpen: !state.isMobileSidebarOpen })),
 }))
