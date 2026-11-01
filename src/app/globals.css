@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 130 15% 4%;
+    --card-foreground: 0 0% 100%;
+    --popover: 130 15% 4%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 130 100% 50%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 130 15% 8%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 130 10% 12%;
+    --muted-foreground: 130 10% 60%;
+    --accent: 130 100% 50%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 130 15% 15%;
+    --input: 130 15% 15%;
+    --ring: 130 100% 50%;
+    --radius: 0.5rem;
+  }
+
+  * {
+    border-color: #1F2E23;
+    box-sizing: border-box;
+  }
+
+  body {
+    background-color: #000000;
+    color: #FFFFFF;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    overflow-x: hidden;
+  }
+
+  /* edocode sleek cyber scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #000000;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1F2E23;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #22C55E;
+  }
+}
+
+@layer components {
+  .figma-card {
+    background-color: #0A0D0A;
+    border: 1px solid #1F2E23;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .figma-card:hover {
+    border-color: #2D4232;
+  }
+  .glow-green {
+    box-shadow: 0 0 20px -3px rgba(34, 197, 94, 0.25);
+  }
+  .glow-green-sm {
+    box-shadow: 0 0 10px -2px rgba(34, 197, 94, 0.2);
+  }
+  .glow-green-border {
+    border-color: rgba(34, 197, 94, 0.35);
+    box-shadow: 0 0 12px -3px rgba(34, 197, 94, 0.15);
+  }
+}

@@ -50,6 +50,13 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
+  username      String?   @unique
+  bio           String?   @db.Text
+  role          String?   @default("Analyst")
+  department    String?
+  phone         String?
+  githubUsername String?  @map("github_username")
+  linkedinUrl   String?   @map("linkedin_url")
   accounts      Account[]
   sessions      Session[]
 
@@ -113,7 +120,14 @@ enum LinkType {
 enum SkillType {
   HISTORICAL_ANALYZER
   REMEDIATION_LINKER
+  VULNERABILITY_REMEDIATION
+  DOCUMENT_ANALYSIS
   CUSTOM
+}
+
+enum SourceType {
+  VULNERABILITY
+  DOCUMENT
 }
 
 enum RunStatus {
@@ -201,6 +215,7 @@ model Skill {
   name        String    @unique
   description String?   @db.Text
   type        SkillType
+  prompt      String?   @db.Text
   config      Json      @default("{}")
   isActive    Boolean   @default(true) @map("is_active")
   version     String    @default("1.0.0")
@@ -210,27 +225,67 @@ model Skill {
   // Relations
   skillCaches SkillCache[]
   schedules   Schedule[]
+  documents   Document[]
+  agentRuns   AgentRun[]
 
   @@map("skills")
 }
 
 model SkillCache {
-  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  skillId        String    @map("skill_id") @db.Uuid
-  vulnerabilityId String?  @map("vulnerability_id") @db.Uuid
-  patternSummary  String   @map("pattern_summary") @db.Text
-  rawContext      String?  @map("raw_context") @db.Text
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  skillId         String      @map("skill_id") @db.Uuid
+  sourceType      SourceType  @default(VULNERABILITY) @map("source_type")
+  vulnerabilityId String?     @map("vulnerability_id") @db.Uuid
+  documentId      String?     @map("document_id") @db.Uuid
+  patternSummary  String      @map("pattern_summary") @db.Text
+  rawContext      String?     @map("raw_context") @db.Text
   // embedding stored as raw bytes — use Supabase client for vector ops
-  metadata        Json     @default("{}")
-  expiresAt       DateTime? @map("expires_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
+  metadata        Json        @default("{}")
+  expiresAt       DateTime?   @map("expires_at")
+  createdAt       DateTime    @default(now()) @map("created_at")
 
   skill          Skill          @relation(fields: [skillId], references: [id])
   vulnerability  Vulnerability? @relation(fields: [vulnerabilityId], references: [id])
+  document       Document?      @relation(fields: [documentId], references: [id])
   remediations   Remediation[]
 
-  @@unique([skillId, vulnerabilityId])
+  @@index([skillId, vulnerabilityId])
+  @@index([skillId, documentId])
   @@map("skill_cache")
+}
+
+model Document {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  skillId     String   @map("skill_id") @db.Uuid
+  filename    String
+  fileUrl     String?  @map("file_url") @db.Text
+  content     String?  @db.Text
+  status      String   @default("PENDING")
+  uploadedAt  DateTime @default(now()) @map("uploaded_at")
+  processedAt DateTime? @map("processed_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  skill       Skill    @relation(fields: [skillId], references: [id])
+  skillCaches SkillCache[]
+
+  @@map("documents")
+}
+
+model AgentRun {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  skillId        String    @map("skill_id") @db.Uuid
+  status         RunStatus @default(RUNNING)
+  batchSize      Int       @default(50) @map("batch_size")
+  totalItems     Int       @default(0) @map("total_items")
+  processedItems Int       @default(0) @map("processed_items")
+  results        Json      @default("{}")
+  startedAt      DateTime  @default(now()) @map("started_at")
+  completedAt    DateTime? @map("completed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  skill          Skill     @relation(fields: [skillId], references: [id])
+
+  @@map("agent_runs")
 }
 
 model Schedule {

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SecureIQ RAG x edocode — Green & Black Brand Design</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            background: '#000000',
+            surface: '#0A0D0A',
+            'surface-2': '#111712',
+            'surface-3': '#1A241B',
+            border: '#1F2E23',
+            'border-light': '#2D4232',
+            'text-primary': '#FFFFFF',
+            'text-secondary': '#9CA3AF',
+            'text-muted': '#52525B',
+            accent: {
+              DEFAULT: '#00FF29',
+              hover: '#33FF55',
+            }
+          },
+          boxShadow: {
+            'glow-green': '0 0 25px -3px rgba(0, 255, 41, 0.35)',
+            'glow-green-sm': '0 0 12px -2px rgba(0, 255, 41, 0.25)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #000000; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .card { background-color: #0A0D0A; border: 1px solid #1F2E23; border-radius: 8px; }
+  </style>
+</head>
+<body class="flex h-screen overflow-hidden text-xs">
+
+  <!-- SIDEBAR -->
+  <aside class="w-64 bg-surface border-r border-border flex flex-col justify-between p-4">
+    <div class="space-y-4">
+      <!-- Logo -->
+      <div class="flex items-center gap-2.5 px-2 py-1">
+        <div class="w-8 h-8 rounded-lg overflow-hidden border border-accent/40 bg-black flex items-center justify-center shadow-glow-green-sm">
+          <img src="/edocode-logo.png" alt="edocode" class="w-full h-full object-cover">
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5 font-bold text-white text-sm">
+            SecureIQ <span class="text-[9px] px-1.5 py-0.2 rounded bg-accent/20 text-accent border border-accent/30 font-mono">edocode</span>
+          </div>
+          <p class="text-[10px] text-text-muted">Security Intelligence</p>
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <button class="w-full py-2 px-3 rounded-md bg-accent text-black font-bold text-xs shadow-glow-green-sm flex items-center justify-center gap-1.5 hover:bg-accent-hover transition">
+        ✨ Run RAG Pipeline
+      </button>
+
+      <!-- Nav -->
+      <nav class="space-y-1 pt-2">
+        <a href="#vulnerabilities" class="flex items-center justify-between px-3 py-2 rounded-md bg-surface-3 text-white border border-accent/40 font-semibold shadow-sm shadow-accent/10">
+          <span>🐛 Vulnerabilities</span>
+          <span class="text-[10px] text-accent font-mono font-bold">20</span>
+        </a>
+        <a href="#remediations" class="flex items-center justify-between px-3 py-2 rounded-md text-text-secondary hover:bg-surface-2 transition">
+          <span>🔧 Remediations</span>
+          <span class="text-[10px] text-text-muted font-mono">10</span>
+        </a>
+        <a href="#scanner" class="flex items-center justify-between px-3 py-2 rounded-md text-text-secondary hover:bg-surface-2 transition">
+          <span>⎇ Repo Scanner</span>
+          <span class="text-[9px] px-1.5 py-0.5 rounded bg-accent/15 border border-accent/30 text-accent font-mono">New</span>
+        </a>
+        <a href="#skills" class="flex items-center justify-between px-3 py-2 rounded-md text-text-secondary hover:bg-surface-2 transition">
+          <span>🤖 Skills & Agents</span>
+          <span class="text-[9px] px-1.5 py-0.5 rounded bg-surface-2 border border-border text-text-muted">2 Active</span>
+        </a>
+        <a href="#cache" class="flex items-center justify-between px-3 py-2 rounded-md text-text-secondary hover:bg-surface-2 transition">
+          <span>🗄️ Pattern Cache</span>
+          <span class="text-[10px] text-text-muted font-mono">50</span>
+        </a>
+        <a href="#schedule" class="flex items-center justify-between px-3 py-2 rounded-md text-text-secondary hover:bg-surface-2 transition">
+          <span>📅 Scheduler</span>
+          <span class="text-[10px] text-accent font-mono">Cron OK</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- Status footer -->
+    <div class="p-3 rounded-lg bg-black border border-border text-[11px] space-y-1">
+      <div class="flex items-center justify-between">
+        <span class="flex items-center gap-1.5 text-text-secondary">
+          <span class="w-2 h-2 rounded-full bg-accent animate-pulse"></span> edocode Engine
+        </span>
+        <span class="font-mono text-accent text-[10px] font-bold">ACTIVE</span>
+      </div>
+      <p class="text-[10px] text-text-muted font-mono">Next.js 14 • pgvector</p>
+    </div>
+  </aside>
+
+  <!-- MAIN CANVAS -->
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <!-- HEADER -->
+    <header class="h-16 border-b border-border bg-surface px-6 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="px-2.5 py-1 rounded bg-surface-2 border border-accent/30 text-white text-xs flex items-center gap-1.5">
+          <span class="text-accent">●</span> Posture: <span class="text-accent font-bold">Protected</span>
+        </span>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="px-3 py-1.5 rounded bg-surface-2 border border-accent/40 text-accent text-xs font-semibold hover:bg-accent/10 flex items-center gap-1.5">
+          ✨ Trigger Agent
+        </button>
+        <div class="flex items-center gap-2 px-2.5 py-1 rounded-full bg-surface-2 border border-border">
+          <div class="w-6 h-6 rounded-full overflow-hidden border border-accent/40 bg-black flex items-center justify-center">
+            <img src="/edocode-logo.png" alt="edocode" class="w-full h-full object-cover">
+          </div>
+          <span class="text-xs text-white font-medium">edocode Analyst</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT BODY -->
+    <main class="flex-1 overflow-y-auto p-6 space-y-6">
+      <!-- Title & KPI Row -->
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-lg font-bold text-white">Security Vulnerabilities</h1>
+          <p class="text-xs text-text-secondary">Real-time threat tracking with semantic AI remediation bridges</p>
+        </div>
+        <div class="flex gap-2">
+          <button class="px-3 py-1.5 rounded bg-accent text-black font-bold hover:bg-accent-hover text-xs shadow-glow-green-sm">
+            + Add Vulnerability
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Stats -->
+      <div class="grid grid-cols-4 gap-3">
+        <div class="card p-3.5">
+          <p class="text-[10px] uppercase text-text-muted font-bold font-mono">Total Vulnerabilities</p>
+          <p class="text-xl font-mono font-bold text-white mt-1">20</p>
+        </div>
+        <div class="card p-3.5 border-red-500/30">
+          <p class="text-[10px] uppercase text-red-400 font-bold font-mono">Critical Threats</p>
+          <p class="text-xl font-mono font-bold text-red-400 mt-1">4</p>
+        </div>
+        <div class="card p-3.5 border-amber-500/30">
+          <p class="text-[10px] uppercase text-amber-400 font-bold font-mono">Open Tickets</p>
+          <p class="text-xl font-mono font-bold text-amber-400 mt-1">14</p>
+        </div>
+        <div class="card p-3.5 border-accent/40 shadow-glow-green-sm">
+          <p class="text-[10px] uppercase text-accent font-bold font-mono">Resolved / Patched</p>
+          <p class="text-xl font-mono font-bold text-accent mt-1">6</p>
+        </div>
+      </div>
+
+      <!-- Table Card -->
+      <div class="card overflow-hidden">
+        <table class="w-full text-left">
+          <thead class="bg-surface-2 border-b border-border text-[11px] uppercase tracking-wider text-text-secondary">
+            <tr>
+              <th class="p-3">CVE ID</th>
+              <th class="p-3">Title</th>
+              <th class="p-3">Severity</th>
+              <th class="p-3">CVSS</th>
+              <th class="p-3">System</th>
+              <th class="p-3">Status</th>
+              <th class="p-3">Remediation Links</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border text-xs">
+            <tr class="hover:bg-surface-2/60 transition cursor-pointer">
+              <td class="p-3 font-mono text-text-secondary">CVE-2024-3094</td>
+              <td class="p-3 font-medium text-white">XZ Utils Upstream Supply Chain Backdoor</td>
+              <td class="p-3"><span class="px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/30 font-semibold text-[10px]">CRITICAL</span></td>
+              <td class="p-3 font-mono text-text-secondary">10.0</td>
+              <td class="p-3 text-text-muted">base-os-images</td>
+              <td class="p-3"><span class="px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/30 font-semibold text-[10px]">RESOLVED</span></td>
+              <td class="p-3 text-accent font-medium">🔗 1 Task (96% AI)</td>
+            </tr>
+            <tr class="hover:bg-surface-2/60 transition cursor-pointer">
+              <td class="p-3 font-mono text-text-secondary">CVE-2021-44228</td>
+              <td class="p-3 font-medium text-white">Apache Log4j2 JNDI RCE (Log4Shell)</td>
+              <td class="p-3"><span class="px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/30 font-semibold text-[10px]">CRITICAL</span></td>
+              <td class="p-3 font-mono text-text-secondary">10.0</td>
+              <td class="p-3 text-text-muted">audit-logging-pipeline</td>
+              <td class="p-3"><span class="px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/30 font-semibold text-[10px]">RESOLVED</span></td>
+              <td class="p-3 text-accent font-medium">🔗 1 Task (Manual)</td>
+            </tr>
+            <tr class="hover:bg-surface-2/60 transition cursor-pointer">
+              <td class="p-3 font-mono text-text-secondary">CVE-2024-6387</td>
+              <td class="p-3 font-medium text-white">OpenSSH regreSSHion Signal Handler Race Condition</td>
+              <td class="p-3"><span class="px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/30 font-semibold text-[10px]">CRITICAL</span></td>
+              <td class="p-3 font-mono text-text-secondary">9.8</td>
+              <td class="p-3 text-text-muted">production-bastion-hosts</td>
+              <td class="p-3"><span class="px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30 font-semibold text-[10px]">OPEN</span></td>
+              <td class="p-3 text-accent font-medium">🔗 1 Task (94% AI)</td>
+            </tr>
+            <tr class="hover:bg-surface-2/60 transition cursor-pointer">
+              <td class="p-3 font-mono text-text-secondary">CVE-2024-21626</td>
+              <td class="p-3 font-medium text-white">runc Container Breakout via Leaked File Descriptor</td>
+              <td class="p-3"><span class="px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/30 font-semibold text-[10px]">CRITICAL</span></td>
+              <td class="p-3 font-mono text-text-secondary">8.6</td>
+              <td class="p-3 text-text-muted">k8s-node-worker</td>
+              <td class="p-3"><span class="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 font-semibold text-[10px]">IN_PROGRESS</span></td>
+              <td class="p-3 text-accent font-medium">🔗 1 Task (89% AI)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
