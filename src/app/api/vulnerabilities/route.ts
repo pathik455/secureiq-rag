@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/config'
 import { prisma } from '@/lib/db/prisma'
-import { MOCK_VULNERABILITIES } from '@/lib/db/mockData'
+import { supabaseAdmin } from '@/lib/db/supabase'
 import { z } from 'zod'
 
 const VulnerabilitySchema = z.object({
@@ -19,10 +19,11 @@ const VulnerabilitySchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     const session = await auth()
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const userId = session.user.id
     const { searchParams } = new URL(req.url)
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20')))
@@ -32,16 +33,21 @@ export async function GET(req: NextRequest) {
     const sortField = searchParams.get('sort') || 'createdAt'
     const sortDir = (searchParams.get('sortDir') || 'desc') as 'asc' | 'desc'
 
+    // 1. Try Prisma with strict user isolation
     try {
-      const where: any = {}
+      const where: any = { createdById: userId }
       if (severity && severity !== 'ALL') where.severity = severity
       if (status && status !== 'ALL') where.status = status
       if (search) {
-        where.OR = [
-          { title: { contains: search, mode: 'insensitive' } },
-          { cveId: { contains: search, mode: 'insensitive' } },
-          { affectedSystem: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } },
+        where.AND = [
+          {
+            OR: [
+              { title: { contains: search, mode: 'insensitive' } },
+              { cveId: { contains: search, mode: 'insensitive' } },
+              { affectedSystem: { contains: search, mode: 'insensitive' } },
+              { description: { contains: search, mode: 'insensitive' } },
+            ],
+          },
         ]
       }
 
@@ -77,56 +83,58 @@ export async function GET(req: NextRequest) {
         prisma.vulnerability.count({ where }),
       ])
 
-      if (vulnerabilities.length > 0) {
+      return NextResponse.json({
+        data: vulnerabilities,
+        meta: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit) || 1,
+        },
+      })
+    } catch (dbErr) {
+      console.warn('[vulnerabilities] Prisma query failed, attempting Supabase client:', (dbErr as any)?.message)
+    }
+
+    // 2. Direct Supabase query fallback (account-specific)
+    try {
+      let query = supabaseAdmin
+        .from('vulnerabilities')
+        .select('*, vul_remed_links(*, remediation:remediations(*))', { count: 'exact' })
+        .eq('created_by', userId)
+
+      if (severity && severity !== 'ALL') query = query.eq('severity', severity)
+      if (status && status !== 'ALL') query = query.eq('status', status)
+      if (search) query = query.ilike('title', `%${search}%`)
+
+      const sortCol = sortField === 'createdAt' ? 'created_at' : sortField
+      query = query.order(sortCol, { ascending: sortDir === 'asc' })
+      query = query.range((page - 1) * limit, page * limit - 1)
+
+      const { data, count, error } = await query
+      if (!error && data) {
         return NextResponse.json({
-          data: vulnerabilities,
+          data,
           meta: {
             page,
             limit,
-            total,
-            totalPages: Math.ceil(total / limit),
+            total: count || 0,
+            totalPages: Math.ceil((count || 0) / limit) || 1,
           },
         })
       }
-    } catch (dbErr) {
-      console.warn('Database query fallback to sample security data:', dbErr)
+    } catch (sbErr) {
+      console.warn('[vulnerabilities] Supabase query fallback failed:', sbErr)
     }
 
-    // Fallback: return sorted and filtered in-memory sample dataset
-    let filtered = [...MOCK_VULNERABILITIES]
-    if (severity && severity !== 'ALL') filtered = filtered.filter((v) => v.severity === severity)
-    if (status && status !== 'ALL') filtered = filtered.filter((v) => v.status === status)
-    if (search) {
-      filtered = filtered.filter(
-        (v) =>
-          v.title.toLowerCase().includes(search) ||
-          (v.cveId || '').toLowerCase().includes(search) ||
-          (v.affectedSystem || '').toLowerCase().includes(search)
-      )
-    }
-
-    // Apply sorting
-    filtered.sort((a: any, b: any) => {
-      let valA = a[sortField] ?? ''
-      let valB = b[sortField] ?? ''
-      if (typeof valA === 'string') valA = valA.toLowerCase()
-      if (typeof valB === 'string') valB = valB.toLowerCase()
-
-      if (valA < valB) return sortDir === 'asc' ? -1 : 1
-      if (valA > valB) return sortDir === 'asc' ? 1 : -1
-      return 0
-    })
-
-    const total = filtered.length
-    const paginated = filtered.slice((page - 1) * limit, page * limit)
-
+    // Return empty dataset for account (NO sample data)
     return NextResponse.json({
-      data: paginated,
+      data: [],
       meta: {
-        page,
+        page: 1,
         limit,
-        total,
-        totalPages: Math.ceil(total / limit) || 1,
+        total: 0,
+        totalPages: 1,
       },
     })
   } catch (error: any) {
@@ -137,34 +145,57 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await auth()
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const userId = session.user.id
     const body = await req.json()
     const parsed = VulnerabilitySchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
     }
 
+    // 1. Try Prisma write
     try {
       const vulnerability = await prisma.vulnerability.create({
         data: {
           ...parsed.data,
-          createdById: session.user.id,
+          createdById: userId,
         },
       })
       return NextResponse.json({ data: vulnerability }, { status: 201 })
-    } catch {
-      const mockVuln = {
-        id: `mock-vuln-${Date.now()}`,
-        ...parsed.data,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        vulRemedLinks: [],
+    } catch (prismaErr) {
+      console.warn('[vulnerabilities] Prisma insert failed, falling back to Supabase client:', (prismaErr as any)?.message)
+    }
+
+    // 2. Direct Supabase write
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('vulnerabilities')
+        .insert({
+          title: parsed.data.title,
+          description: parsed.data.description,
+          cve_id: parsed.data.cveId,
+          severity: parsed.data.severity,
+          cvss_score: parsed.data.cvssScore,
+          affected_system: parsed.data.affectedSystem,
+          affected_versions: parsed.data.affectedVersions,
+          tags: parsed.data.tags,
+          status: parsed.data.status,
+          created_by: userId,
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single()
+
+      if (!error && data) {
+        return NextResponse.json({ data }, { status: 201 })
       }
-      MOCK_VULNERABILITIES.unshift(mockVuln as any)
-      return NextResponse.json({ data: mockVuln }, { status: 201 })
+      if (error) throw error
+    } catch (sbErr: any) {
+      console.error('[vulnerabilities] Supabase insert failed:', sbErr)
+      return NextResponse.json({ error: sbErr.message || 'Failed to save vulnerability' }, { status: 500 })
     }
   } catch (error: any) {
     console.error('Error creating vulnerability:', error)

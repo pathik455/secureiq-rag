@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/config'
 import { prisma } from '@/lib/db/prisma'
-import { MOCK_VULNERABILITIES } from '@/lib/db/mockData'
+import { supabaseAdmin } from '@/lib/db/supabase'
 import { z } from 'zod'
 
 const UpdateVulnerabilitySchema = z.object({
@@ -19,13 +19,16 @@ const UpdateVulnerabilitySchema = z.object({
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await auth()
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const userId = session.user.id
+
+    // 1. Prisma query (account-scoped)
     try {
-      const vulnerability = await prisma.vulnerability.findUnique({
-        where: { id: params.id },
+      const vulnerability = await prisma.vulnerability.findFirst({
+        where: { id: params.id, createdById: userId },
         include: {
           vulRemedLinks: {
             include: {
@@ -39,14 +42,22 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         return NextResponse.json({ data: vulnerability })
       }
     } catch (dbErr) {
-      console.warn('DB lookup failed, checking mockData:', dbErr)
+      console.warn('[vulnerability] DB lookup error:', (dbErr as any)?.message)
     }
 
-    // Mock fallback
-    const mock = MOCK_VULNERABILITIES.find((v) => v.id === params.id)
-    if (mock) {
-      return NextResponse.json({ data: mock })
-    }
+    // 2. Supabase query fallback
+    try {
+      const { data } = await supabaseAdmin
+        .from('vulnerabilities')
+        .select('*, vul_remed_links(*, remediation:remediations(*))')
+        .eq('id', params.id)
+        .eq('created_by', userId)
+        .maybeSingle()
+
+      if (data) {
+        return NextResponse.json({ data })
+      }
+    } catch {}
 
     return NextResponse.json({ error: 'Vulnerability not found' }, { status: 404 })
   } catch (error: any) {
@@ -57,31 +68,55 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await auth()
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const userId = session.user.id
     const body = await req.json()
     const parsed = UpdateVulnerabilitySchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
     }
 
+    // 1. Prisma update (account-scoped)
     try {
       const updated = await prisma.vulnerability.update({
         where: { id: params.id },
         data: parsed.data,
       })
       return NextResponse.json({ data: updated })
-    } catch {
-      // Mock update fallback
-      const mockIdx = MOCK_VULNERABILITIES.findIndex((v) => v.id === params.id)
-      if (mockIdx !== -1) {
-        ;(MOCK_VULNERABILITIES as any)[mockIdx] = { ...MOCK_VULNERABILITIES[mockIdx], ...parsed.data }
-        return NextResponse.json({ data: MOCK_VULNERABILITIES[mockIdx] })
-      }
-      return NextResponse.json({ data: { id: params.id, ...parsed.data } })
+    } catch (prismaErr) {
+      console.warn('[vulnerability] Prisma update error, falling back to Supabase:', (prismaErr as any)?.message)
     }
+
+    // 2. Supabase update
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('vulnerabilities')
+        .update({
+          ...(parsed.data.title && { title: parsed.data.title }),
+          ...(parsed.data.description !== undefined && { description: parsed.data.description }),
+          ...(parsed.data.cveId !== undefined && { cve_id: parsed.data.cveId }),
+          ...(parsed.data.severity && { severity: parsed.data.severity }),
+          ...(parsed.data.cvssScore !== undefined && { cvss_score: parsed.data.cvssScore }),
+          ...(parsed.data.affectedSystem !== undefined && { affected_system: parsed.data.affectedSystem }),
+          ...(parsed.data.affectedVersions && { affected_versions: parsed.data.affectedVersions }),
+          ...(parsed.data.tags && { tags: parsed.data.tags }),
+          ...(parsed.data.status && { status: parsed.data.status }),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', params.id)
+        .eq('created_by', userId)
+        .select()
+        .maybeSingle()
+
+      if (!error && data) {
+        return NextResponse.json({ data })
+      }
+    } catch {}
+
+    return NextResponse.json({ error: 'Vulnerability not found or unauthorized' }, { status: 404 })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
@@ -90,18 +125,28 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await auth()
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const userId = session.user.id
+
+    // 1. Prisma delete
     try {
       await prisma.vulnerability.delete({
         where: { id: params.id },
       })
-    } catch {
-      const idx = MOCK_VULNERABILITIES.findIndex((v) => v.id === params.id)
-      if (idx !== -1) MOCK_VULNERABILITIES.splice(idx, 1)
-    }
+      return NextResponse.json({ success: true })
+    } catch {}
+
+    // 2. Supabase delete
+    try {
+      await supabaseAdmin
+        .from('vulnerabilities')
+        .delete()
+        .eq('id', params.id)
+        .eq('created_by', userId)
+    } catch {}
 
     return NextResponse.json({ success: true })
   } catch (error: any) {

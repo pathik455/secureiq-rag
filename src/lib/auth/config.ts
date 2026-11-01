@@ -181,6 +181,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.email = user.email
         token.picture = user.image
       }
+      if (token.email) {
+        try {
+          const dbUser = await prisma.user.findUnique({ where: { email: token.email } })
+          if (dbUser?.id) {
+            token.sub = dbUser.id
+          }
+        } catch {
+          try {
+            const { data: sbUser } = await supabaseAdmin.from('User').select('id').eq('email', token.email).maybeSingle()
+            if (sbUser?.id) {
+              token.sub = sbUser.id
+            }
+          } catch {}
+        }
+      }
       return token
     },
   },

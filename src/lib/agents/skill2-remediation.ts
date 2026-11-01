@@ -23,22 +23,33 @@ export async function runRemediationLinker(
   skillId: string,
   onProgress: (progress: Skill2Progress) => void,
   confidenceThreshold = 0.7,
-  dryRun = false
+  dryRun = false,
+  userId?: string
 ): Promise<{ remediationsCreated: number; linksCreated: number; duration: number }> {
   const startTime = Date.now()
   const openai = getOpenAIClient()
 
-  const openVulns = await prisma.vulnerability.findMany({
-    where: {
-      status: { in: ['OPEN', 'IN_PROGRESS'] },
-    },
-    take: 20,
-    orderBy: { severity: 'asc' },
-  })
+  let openVulns: any[] = []
+  try {
+    openVulns = await prisma.vulnerability.findMany({
+      where: {
+        status: { in: ['OPEN', 'IN_PROGRESS'] },
+        ...(userId ? { createdById: userId } : {}),
+      },
+      take: 20,
+      orderBy: { severity: 'asc' },
+    })
+  } catch {
+    openVulns = []
+  }
 
   const total = openVulns.length
   let remediationsCreated = 0
   let linksCreated = 0
+
+  if (total === 0) {
+    return { remediationsCreated: 0, linksCreated: 0, duration: Date.now() - startTime }
+  }
 
   for (let i = 0; i < openVulns.length; i++) {
     const vuln = openVulns[i]
@@ -88,6 +99,7 @@ Respond ONLY with valid JSON:
               status: 'PENDING',
               isAiGenerated: true,
               cacheId: topMatch.id,
+              ...(userId ? { createdById: userId, assignedToId: userId } : {}),
             },
           })
           remediationsCreated++

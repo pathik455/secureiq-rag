@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db/prisma'
+import { supabaseAdmin } from '@/lib/db/supabase'
 import { MOCK_VULNERABILITIES, MOCK_REMEDIATIONS } from '@/lib/db/mockData'
 import OpenAI from 'openai'
 
@@ -351,6 +352,8 @@ Output ONLY a JSON array in the following exact format:
             status: 'PENDING',
             priority: vuln.severity === 'CRITICAL' ? 'CRITICAL' : vuln.severity === 'HIGH' ? 'HIGH' : 'MEDIUM',
             isAiGenerated: true,
+            createdById: userId,
+            assignedToId: userId,
             resolutionNotes: `Created via GitHub Scanner pipeline for ${owner}/${repo}. Target CVE: ${vuln.cveId || 'N/A'}.`,
           },
         })
@@ -369,61 +372,58 @@ Output ONLY a JSON array in the following exact format:
         createdCount++
       }
     } catch (insertErr) {
-      console.warn(`DB insert unavailable, adding to in-memory store for demo:`, insertErr)
+      console.warn(`Prisma insert failed, attempting Supabase direct sync:`, insertErr)
 
-      // Fallback in-memory insertion for demo mode
-      const mockId = `scanned-vuln-${Date.now()}-${Math.floor(Math.random() * 1000)}`
-      const mockRemId = `scanned-rem-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+      try {
+        const { data: createdVuln } = await supabaseAdmin
+          .from('vulnerabilities')
+          .insert({
+            cve_id: vuln.cveId,
+            title: vuln.title,
+            description: vuln.description,
+            severity: vuln.severity,
+            cvss_score: vuln.cvssScore,
+            affected_system: vuln.affectedSystem,
+            affected_versions: vuln.affectedVersions,
+            tags: vuln.tags,
+            status: 'OPEN',
+            created_by: userId,
+            updated_at: new Date().toISOString(),
+          })
+          .select()
+          .single()
 
-      const existingMock = MOCK_VULNERABILITIES.find(v => v.cveId === vuln.cveId)
-      if (existingMock) {
-        alreadyExistingCount++
-      } else {
-        const mockRemediation = {
-          id: mockRemId,
-          title: `Remediate ${vuln.cveId || vuln.title}: Patch ${vuln.affectedSystem}`,
-          description: `Automated remediation plan for ${vuln.cveId}: Upgrade affected packages in ${vuln.affectedSystem}.`,
-          status: 'PENDING' as const,
-          priority: (vuln.severity === 'CRITICAL' ? 'CRITICAL' : vuln.severity === 'HIGH' ? 'HIGH' : 'MEDIUM') as any,
-          isAiGenerated: true,
-          dueDate: new Date(Date.now() + 7 * 86400000).toISOString(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          vulRemedLinks: [],
+        if (createdVuln) {
+          const remedTitle = `Remediate ${vuln.cveId || vuln.title}: Patch ${vuln.affectedSystem}`
+          const remedDesc = `Automated remediation plan for ${vuln.cveId}: Upgrade affected dependencies in ${vuln.affectedSystem} to secure patched versions.`
+          const { data: createdRemed } = await supabaseAdmin
+            .from('remediations')
+            .insert({
+              title: remedTitle,
+              description: remedDesc,
+              status: 'PENDING',
+              priority: vuln.severity === 'CRITICAL' ? 'CRITICAL' : vuln.severity === 'HIGH' ? 'HIGH' : 'MEDIUM',
+              is_ai_generated: true,
+              created_by: userId,
+              assigned_to: userId,
+              updated_at: new Date().toISOString(),
+            })
+            .select()
+            .single()
+
+          if (createdRemed) {
+            await supabaseAdmin.from('vul_remed_links').insert({
+              vulnerability_id: createdVuln.id,
+              remediation_id: createdRemed.id,
+              link_type: 'AI_GENERATED',
+              confidence_score: 0.95,
+              notes: `Automatically linked from repository audit of ${owner}/${repo}`,
+            })
+          }
+          createdCount++
         }
-
-        MOCK_REMEDIATIONS.unshift(mockRemediation)
-
-        MOCK_VULNERABILITIES.unshift({
-          id: mockId,
-          cveId: vuln.cveId,
-          title: vuln.title,
-          description: vuln.description,
-          severity: vuln.severity,
-          cvssScore: vuln.cvssScore,
-          affectedSystem: vuln.affectedSystem,
-          affectedVersions: vuln.affectedVersions,
-          tags: vuln.tags,
-          status: 'OPEN' as const,
-          discoveredAt: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          vulRemedLinks: [
-            {
-              id: `link-${mockId}`,
-              vulnerabilityId: mockId,
-              remediationId: mockRemId,
-              linkType: 'AI_GENERATED' as const,
-              confidenceScore: 0.95,
-              createdByAgent: 'GitHub Security Scanner',
-              notes: `Auto-linked from scan of ${owner}/${repo}`,
-              createdAt: new Date().toISOString(),
-              remediation: mockRemediation,
-            },
-          ],
-        } as any)
-
-        createdCount++
+      } catch (sbErr) {
+        console.error('Supabase scanner insert failed:', sbErr)
       }
     }
   }

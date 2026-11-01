@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/config'
 import { scanGitHubRepository } from '@/lib/scanner/github'
 import { prisma } from '@/lib/db/prisma'
+import { supabaseAdmin } from '@/lib/db/supabase'
 import { z } from 'zod'
 
 const ScanRequestSchema = z.object({
@@ -12,7 +13,7 @@ const ScanRequestSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const session = await auth()
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -45,27 +46,59 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const session = await auth()
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch vulnerabilities discovered via github-scan
-    const scannedVulns = await prisma.vulnerability.findMany({
-      where: {
-        tags: { has: 'github-scan' },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 20,
-      include: {
-        vulRemedLinks: {
-          include: { remediation: true },
+    const userId = session.user.id
+
+    // 1. Prisma query (account-scoped to current user's scans)
+    try {
+      const scannedVulns = await prisma.vulnerability.findMany({
+        where: {
+          tags: { has: 'github-scan' },
+          createdById: userId,
         },
-      },
-    })
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        include: {
+          vulRemedLinks: {
+            include: { remediation: true },
+          },
+        },
+      })
+
+      return NextResponse.json({
+        data: scannedVulns,
+        totalScannedRecords: scannedVulns.length,
+      })
+    } catch (dbErr) {
+      console.warn('[scanner] Prisma query failed, attempting Supabase client:', (dbErr as any)?.message)
+    }
+
+    // 2. Direct Supabase query fallback
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('vulnerabilities')
+        .select('*, vul_remed_links(*, remediation:remediations(*))')
+        .contains('tags', ['github-scan'])
+        .eq('created_by', userId)
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+      if (!error && data) {
+        return NextResponse.json({
+          data,
+          totalScannedRecords: data.length,
+        })
+      }
+    } catch (sbErr) {
+      console.warn('[scanner] Supabase query fallback failed:', sbErr)
+    }
 
     return NextResponse.json({
-      data: scannedVulns,
-      totalScannedRecords: scannedVulns.length,
+      data: [],
+      totalScannedRecords: 0,
     })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })

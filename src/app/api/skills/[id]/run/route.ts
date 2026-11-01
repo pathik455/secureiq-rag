@@ -41,7 +41,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     if (skill.type === 'HISTORICAL_ANALYZER' || skill.type === 'VULNERABILITY_REMEDIATION') {
       const batchSize = body.batchSize || 50
-      result = await runHistoricalAnalyzer(skill.id, () => {}, batchSize, skill.prompt)
+      result = await runHistoricalAnalyzer(skill.id, () => {}, batchSize, skill.prompt, session.user.id)
     } else if (skill.type === 'DOCUMENT_ANALYSIS') {
       const docText =
         body.documentContent ||
@@ -57,7 +57,7 @@ Any critical vulnerability identified in container base layers must trigger an a
         skill.prompt
       )
     } else if (skill.type === 'REMEDIATION_LINKER') {
-      result = await runRemediationLinker(skill.id, () => {}, 0.7, false)
+      result = await runRemediationLinker(skill.id, () => {}, 0.7, false, session.user.id)
     } else {
       // Custom skill execution
       result = { executed: true, skillType: skill.type, message: 'Custom skill executed successfully' }

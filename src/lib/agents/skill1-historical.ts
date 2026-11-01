@@ -30,21 +30,37 @@ export async function runHistoricalAnalyzer(
   skillId: string,
   onProgress: (progress: Skill1Progress) => void,
   batchSize = 50,
-  customPrompt?: string | null
+  customPrompt?: string | null,
+  userId?: string
 ): Promise<{ cacheCreated: number; duration: number; batchesProcessed: number }> {
   const startTime = Date.now()
   const openai = getOpenAIClient()
 
   // 1. Determine total vulnerabilities to process
   let total = 0
+  const where = userId ? { createdById: userId } : {}
   try {
-    total = await prisma.vulnerability.count()
+    if (typeof (prisma.vulnerability as any)?.count === 'function') {
+      total = await prisma.vulnerability.count({ where })
+    } else {
+      const sample = await prisma.vulnerability.findMany({ where, take: 100 })
+      total = sample.length
+    }
   } catch {
-    total = MOCK_VULNERABILITIES.length
+    total = 0
   }
 
-  // Ensure at least 1 item for progress
-  if (total === 0) total = MOCK_VULNERABILITIES.length
+  if (total === 0) {
+    onProgress({
+      event: 'skill_complete',
+      batchNumber: 0,
+      totalBatches: 0,
+      processed: 0,
+      total: 0,
+    })
+    return { cacheCreated: 0, duration: Date.now() - startTime, batchesProcessed: 0 }
+  }
+
   const totalBatches = Math.max(1, Math.ceil(total / batchSize))
   let cacheCreated = 0
   let processed = 0
@@ -58,16 +74,14 @@ export async function runHistoricalAnalyzer(
 
     try {
       vulnerabilities = await prisma.vulnerability.findMany({
+        where,
         skip: offset,
         take: batchSize,
         orderBy: { createdAt: 'desc' },
       })
     } catch (dbErr) {
-      // In-memory demo fallback chunk
-      vulnerabilities = MOCK_VULNERABILITIES.slice(offset, offset + batchSize)
-      if (vulnerabilities.length === 0 && batchIndex === 0) {
-        vulnerabilities = [...MOCK_VULNERABILITIES]
-      }
+      console.warn('[skill1] DB fetch failed:', dbErr)
+      vulnerabilities = []
     }
 
     if (vulnerabilities.length === 0) break
