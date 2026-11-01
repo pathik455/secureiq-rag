@@ -2,6 +2,7 @@ import NextAuth from 'next-auth'
 import Google from 'next-auth/providers/google'
 import Credentials from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/db/prisma'
+import { supabaseAdmin } from '@/lib/db/supabase'
 import { authEdgeConfig } from './edge'
 
 // Ensure NEXTAUTH_URL / AUTH_URL are valid URLs to prevent ERR_INVALID_URL
@@ -74,6 +75,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           return user
         } catch {
+          // If Prisma is unavailable, fallback to Supabase Admin or return session
+          try {
+            const { data } = await supabaseAdmin.from('User').select('*').eq('email', email).maybeSingle()
+            if (data) return data
+          } catch {}
+
           return {
             id: 'demo-analyst-1',
             email,
@@ -98,21 +105,54 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authEdgeConfig.callbacks,
     async signIn({ user, account }) {
       if (account?.provider === 'google' && user.email) {
+        const userData = {
+          email: user.email,
+          name: user.name || 'Security Analyst',
+          image: user.image || null,
+          role: 'Analyst',
+          username: user.email.split('@')[0],
+          updatedAt: new Date().toISOString(),
+        }
+
+        let synced = false
+
+        // 1. Attempt sync via Prisma (if DATABASE_URL is reachable)
         try {
           const existing = await prisma.user.findUnique({ where: { email: user.email } })
           if (!existing) {
             await prisma.user.create({
               data: {
                 email: user.email,
-                name: user.name || 'Security Analyst',
-                image: user.image,
-                role: 'Security Analyst',
-                username: user.email.split('@')[0],
+                name: userData.name,
+                image: userData.image,
+                role: userData.role,
+                username: userData.username,
               },
             })
           }
-        } catch (e) {
-          console.warn('[auth] DB sync skipped during Google OAuth sign-in:', e)
+          synced = true
+        } catch (prismaErr) {
+          console.warn('[auth] Prisma user sync skipped, falling back to Supabase client:', (prismaErr as any)?.message)
+        }
+
+        // 2. Direct Supabase Admin sync (always works via HTTPS REST without database port/password)
+        try {
+          const userId = user.id || `usr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+          const { error } = await supabaseAdmin.from('User').upsert(
+            {
+              id: userId,
+              ...userData,
+            },
+            { onConflict: 'email' }
+          )
+          if (error) {
+            console.error('[auth] Supabase Admin sync error:', error)
+          } else {
+            console.log('[auth] Successfully synced Google user to Supabase:', user.email)
+            synced = true
+          }
+        } catch (sbErr) {
+          console.error('[auth] Supabase client exception:', sbErr)
         }
       }
       return true
